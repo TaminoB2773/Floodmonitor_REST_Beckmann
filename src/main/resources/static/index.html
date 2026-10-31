@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloodMonitor Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #0056b3;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .status-alert {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .status-ok {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .refresh-info {
+            font-size: 0.9em;
+            color: #666;
+            text-align: right;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌊 FloodMonitor Dashboard</h1>
+    <p style="text-align: center;">Live-Übersicht der Pegelmessstationen</p>
+
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Stationsname</th>
+            <th>Wasserstand (m)</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody id="station-table-body">
+        <tr>
+            <td colspan="4" style="text-align: center;">Lade Daten...</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="refresh-info">Aktualisiert alle 5 Sekunden automatisch</div>
+</div>
+
+<script>
+    async function fetchStations() {
+        try {
+            const response = await fetch('/api/v1/stations');
+            if (!response.ok) {
+                throw new Error('Netzwerk-Antwort war nicht ok');
+            }
+            const stations = await response.json();
+
+            const tbody = document.getElementById('station-table-body');
+            tbody.innerHTML = '';
+
+            stations.forEach(station => {
+                const tr = document.createElement('tr');
+
+                // Hier prüfen wir verschiedene mögliche Namen für das Attribut aus deinem Java-Modell
+                const name = station.name || station.stationName || station.title || 'Unbekannt';
+                const waterLevel = station.waterLevel !== undefined ? station.waterLevel.toFixed(2) : '0.00';
+
+                const isAlert = station.waterLevel > 5.0;
+                const statusText = isAlert ? '⚠️ Alarm' : '✔ Normal';
+                const statusClass = isAlert ? 'status-alert' : 'status-ok';
+
+                tr.innerHTML = `
+                    <td>${station.id}</td>
+                    <td>${name}</td>
+                    <td>${waterLevel} m</td>
+                    <td class="${statusClass}">${statusText}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('Fehler beim Laden der Stationen:', error);
+        }
+    }
+
+    fetchStations();
+    setInterval(fetchStations, 5000);
+</script>
+
+</body>
+</html>
